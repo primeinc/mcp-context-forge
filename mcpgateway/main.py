@@ -443,7 +443,7 @@ async def initialize(request: Request, user = Depends(unified_auth)) -> Initiali
 
 
 @protocol_router.post("/ping")
-async def ping(request: Request, user: str = Depends(require_auth)) -> JSONResponse:
+async def ping(request: Request, user = Depends(unified_auth)) -> JSONResponse:
     """
     Handle a ping request according to the MCP specification.
 
@@ -452,7 +452,7 @@ async def ping(request: Request, user: str = Depends(require_auth)) -> JSONRespo
 
     Args:
         request (Request): The incoming FastAPI request.
-        user (str): The authenticated user (dependency injection).
+        user: The authenticated user (dependency injection).
 
     Returns:
         JSONResponse: A JSON-RPC response with an empty result or an error response.
@@ -465,7 +465,8 @@ async def ping(request: Request, user: str = Depends(require_auth)) -> JSONRespo
         if body.get("method") != "ping":
             raise HTTPException(status_code=400, detail="Invalid method")
         req_id: str = body.get("id")
-        logger.debug(f"Authenticated user {user} sent ping request.")
+        user_id = get_user_identifier(user)
+        logger.debug(f"Authenticated user {user_id} sent ping request.")
         # Return an empty result per the MCP ping specification.
         response: dict = {"jsonrpc": "2.0", "id": req_id, "result": {}}
         return JSONResponse(content=response)
