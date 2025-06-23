@@ -19,11 +19,15 @@ from fastapi_azure_auth.user import User
 
 from mcpgateway.config import settings
 
+
 class AzureADAuth:
     """Azure AD Authentication handler."""
     
     def __init__(self):
-        """Initialize Azure AD authentication."""
+        """Initialize Azure AD authentication.
+        
+        :raises ValueError: When Azure AD configuration is missing.
+        """
         # Load Azure AD configuration from environment
         self.azure_client_id = os.getenv('AZURE_CLIENT_ID', '')
         self.azure_tenant_id = os.getenv('AZURE_TENANT_ID', '')
@@ -79,12 +83,14 @@ class AzureADAuth:
 # Global instance
 azure_ad_auth = None
 
+
 def get_azure_auth() -> AzureADAuth:
     """Get or create the Azure AD auth instance."""
     global azure_ad_auth
     if azure_ad_auth is None:
         azure_ad_auth = AzureADAuth()
     return azure_ad_auth
+
 
 async def get_current_user(auth_type: str = "azure_ad") -> User:
     """
@@ -136,6 +142,7 @@ async def get_current_user(auth_type: str = "azure_ad") -> User:
             headers={"WWW-Authenticate": "Bearer"},
         ) from e
 
+
 async def require_admin_user(auth_type: str = "azure_ad") -> User:
     """
     Require administrative access.
@@ -185,6 +192,7 @@ async def require_admin_user(auth_type: str = "azure_ad") -> User:
             detail="Administrative access required",
             headers={"WWW-Authenticate": "Bearer"},
         ) from e
+
 
 def configure_app_auth(app):
     """Configure FastAPI app with Azure AD authentication."""

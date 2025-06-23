@@ -3,7 +3,6 @@
 name: mcp-context-forge
 metadata:
   template: mcp-context-forge@0.0.1-beta
-  
 services:
   api:
     project: .
@@ -23,7 +22,6 @@ services:
       - AUTH_TYPE=azure_ad
       - CORS_ENABLED=true
       - LOG_LEVEL=INFO
-  
   web:
     project: .
     language: docker

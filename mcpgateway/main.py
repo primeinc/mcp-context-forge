@@ -117,18 +117,16 @@ from mcpgateway.types import (
     Root,
 )
 from mcpgateway.utils.azure_auth import configure_app_auth
-from mcpgateway.utils.unified_auth import unified_auth, unified_admin_auth, get_user_identifier
+from mcpgateway.utils.unified_auth import unified_auth, get_user_identifier
 from mcpgateway.utils.verify_credentials import require_auth_override
-
-# Create alias for backward compatibility
-require_auth = unified_auth
 from mcpgateway.validation.jsonrpc import (
     JSONRPCError,
     validate_request,
 )
-
-# Import the admin routes from the new module
 from mcpgateway.version import router as version_router
+
+# Create alias for backward compatibility
+require_auth = unified_auth
 
 # Initialize logging service first
 logging_service = LoggingService()
@@ -446,7 +444,7 @@ async def initialize(request: Request, user = Depends(unified_auth)) -> Initiali
 
 
 @protocol_router.post("/ping")
-async def ping(request: Request, user = Depends(unified_auth)) -> JSONResponse:
+async def ping(request: Request, user=Depends(unified_auth)) -> JSONResponse:
     """
     Handle a ping request according to the MCP specification.
 

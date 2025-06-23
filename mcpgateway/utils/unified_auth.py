@@ -11,7 +11,6 @@ both legacy auth (JWT/basic) and Azure AD authentication.
 """
 
 from typing import Union
-from fastapi import Depends
 from fastapi_azure_auth.user import User
 
 from mcpgateway.config import settings
