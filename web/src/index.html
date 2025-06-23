@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Context Forge</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 font-sans">
+    <div id="app" x-data="mcpApp()">
+        <!-- Header -->
+        <header class="bg-white shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <h1 class="text-xl font-semibold text-gray-900">MCP Context Forge</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div x-show="!isAuthenticated" class="space-x-2">
+                            <button @click="signIn()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                                Sign In
+                            </button>
+                        </div>
+                        <div x-show="isAuthenticated" class="flex items-center space-x-4">
+                            <span class="text-sm text-gray-700" x-text="userDisplayName"></span>
+                            <button @click="signOut()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium">
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading State -->
+        <div x-show="isLoading" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <div class="flex items-center space-x-3">
+                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                    <span class="text-gray-700">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+            <!-- Authentication Required -->
+            <div x-show="!isAuthenticated && !isLoading" class="text-center py-12">
+                <h2 class="text-2xl font-bold text-gray-900 mb-4">Welcome to MCP Context Forge</h2>
+                <p class="text-gray-600 mb-8">Please sign in with your Azure AD account to access the admin interface.</p>
+                <button @click="signIn()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md text-lg font-medium">
+                    Sign In with Azure AD
+                </button>
+            </div>
+
+            <!-- Admin Interface -->
+            <div x-show="isAuthenticated && !isLoading" class="space-y-6">
+                <!-- Navigation Tabs -->
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8">
+                        <button @click="activeTab = 'servers'" 
+                                :class="activeTab === 'servers' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                            Servers
+                        </button>
+                        <button @click="activeTab = 'tools'" 
+                                :class="activeTab === 'tools' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                            Tools
+                        </button>
+                        <button @click="activeTab = 'resources'" 
+                                :class="activeTab === 'resources' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                            Resources
+                        </button>
+                        <button @click="activeTab = 'prompts'" 
+                                :class="activeTab === 'prompts' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                                class="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm">
+                            Prompts
+                        </button>
+                    </nav>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="bg-white shadow rounded-lg p-6">
+                    <!-- Servers Tab -->
+                    <div x-show="activeTab === 'servers'">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">MCP Servers</h3>
+                        <div id="servers-content" hx-get="/api/servers" hx-trigger="load" hx-target="#servers-content">
+                            <div class="animate-pulse">
+                                <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                                <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tools Tab -->
+                    <div x-show="activeTab === 'tools'">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Tools</h3>
+                        <div id="tools-content" hx-get="/api/tools" hx-trigger="load" hx-target="#tools-content">
+                            <div class="animate-pulse">
+                                <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                                <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resources Tab -->
+                    <div x-show="activeTab === 'resources'">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Resources</h3>
+                        <div id="resources-content" hx-get="/api/resources" hx-trigger="load" hx-target="#resources-content">
+                            <div class="animate-pulse">
+                                <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                                <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Prompts Tab -->
+                    <div x-show="activeTab === 'prompts'">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Prompts</h3>
+                        <div id="prompts-content" hx-get="/api/prompts" hx-trigger="load" hx-target="#prompts-content">
+                            <div class="animate-pulse">
+                                <div class="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                                <div class="h-4 bg-gray-200 rounded w-1/2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- External dependencies -->
+    <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+    <script src="https://unpkg.com/alpinejs@3.15.1/dist/cdn.min.js" defer></script>
+    <script src="config.js"></script>
+</body>
+</html>

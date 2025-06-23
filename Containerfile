@@ -1,8 +1,8 @@
-FROM registry.access.redhat.com/ubi9-minimal:9.6-1749489516
+FROM registry.access.redhat.com/ubi9-minimal:9.6-1749489516 AS mcpgateway
 LABEL maintainer="Mihai Criveti" \
-      name="mcp/mcpgateway" \
+      name="mcp/mcpgateway-api" \
       version="0.1.1" \
-      description="MCP Gateway: An enterprise-ready Model Context Protocol Gateway"
+      description="MCP Gateway API: An enterprise-ready Model Context Protocol Gateway API"
 
 ARG PYTHON_VERSION=3.11
 
@@ -23,7 +23,8 @@ COPY . /app
 # Create virtual environment, upgrade pip and install dependencies using uv for speed
 RUN python3 -m venv /app/.venv && \
     /app/.venv/bin/python3 -m pip install --upgrade pip setuptools pdm uv && \
-    /app/.venv/bin/python3 -m uv pip install ".[redis,postgres]"
+    /app/.venv/bin/python3 -m uv pip install ".[redis,postgres]" && \
+    /app/.venv/bin/python3 -m pip install fastapi-azure-auth
 
 # update the user permissions
 RUN chown -R 1001:0 /app && \
@@ -37,6 +38,11 @@ USER 1001
 
 # Ensure virtual environment binaries are in PATH
 ENV PATH="/app/.venv/bin:$PATH"
+
+# Override environment variables for API-only mode
+ENV MCPGATEWAY_UI_ENABLED=false
+ENV MCPGATEWAY_ADMIN_API_ENABLED=true
+ENV AUTH_TYPE=azure_ad
 
 # Start the application using run-gunicorn.sh
 CMD ["./run-gunicorn.sh"]

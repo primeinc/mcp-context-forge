@@ -2092,3 +2092,56 @@ shfmt-fix: shell-linters-install   ## 🎨  Auto-format *.sh in place
 	@echo "🎨  Formatting shell scripts with shfmt -w…"
 	@shfmt -w -i 4 -ci $(SHELL_SCRIPTS)
 	@echo "✅  shfmt formatting done."
+
+# =============================================================================
+# ☁️ AZURE DEPLOYMENT
+# =============================================================================
+
+.PHONY: azure-check azure-up azure-provision azure-deploy azure-down azure-validate azure-logs
+
+azure-check:   ## 🔍  Check Azure CLI and azd prerequisites
+	@echo "🔍  Checking Azure deployment prerequisites…"
+	@command -v az >/dev/null 2>&1 || { echo "❌ Azure CLI not found. Install: https://docs.microsoft.com/en-us/cli/azure/install-azure-cli"; exit 1; }
+	@command -v azd >/dev/null 2>&1 || { echo "❌ Azure Developer CLI not found. Install: https://aka.ms/azd-install"; exit 1; }
+	@az account show >/dev/null 2>&1 || { echo "❌ Not logged into Azure. Run: az login"; exit 1; }
+	@echo "✅  Azure prerequisites satisfied."
+
+azure-up: azure-check   ## 🚀  Full Azure deployment (provision + deploy)
+	@echo "🚀  Starting full Azure deployment…"
+	azd up
+
+azure-provision: azure-check   ## 🏗️  Provision Azure infrastructure only
+	@echo "🏗️  Provisioning Azure infrastructure…"
+	azd provision
+
+azure-deploy: azure-check   ## 📦  Deploy applications to existing infrastructure
+	@echo "📦  Deploying applications…"
+	azd deploy
+
+azure-down:   ## 🧹  Delete Azure deployment (with confirmation)
+	@echo "🧹  Deleting Azure deployment…"
+	azd down
+
+azure-validate:   ## ✅  Validate Azure deployment
+	@echo "✅  Validating Azure deployment…"
+	@test -d "$(VENV_DIR)" || $(MAKE) venv
+	@$(VENV_DIR)/bin/python3 -m pip install --quiet httpx || true
+	@$(VENV_DIR)/bin/python3 scripts/validate-azure-deployment.py
+
+azure-logs:   ## 📋  View Azure Container Apps logs
+	@echo "📋  Fetching Azure Container Apps logs…"
+	@API_NAME=$$(azd env get-value API_NAME 2>/dev/null || echo ""); \
+	WEB_NAME=$$(azd env get-value WEB_NAME 2>/dev/null || echo ""); \
+	RG_NAME=$$(azd env get-value AZURE_RESOURCE_GROUP 2>/dev/null || echo ""); \
+	if [ -n "$$API_NAME" ] && [ -n "$$RG_NAME" ]; then \
+		echo "📡 API Container App logs:"; \
+		az containerapp logs show --name "$$API_NAME" --resource-group "$$RG_NAME" --tail 50; \
+		echo "\n📱 Web Container App logs:"; \
+		az containerapp logs show --name "$$WEB_NAME" --resource-group "$$RG_NAME" --tail 50; \
+	else \
+		echo "❌ Azure environment not found. Run 'azd up' first."; \
+	fi
+
+azure-status:   ## 📊  Show Azure deployment status
+	@echo "📊  Azure deployment status…"
+	@azd env get-values || echo "❌ No azd environment found. Run 'azd up' first."
