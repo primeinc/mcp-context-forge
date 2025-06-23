@@ -116,7 +116,9 @@ from mcpgateway.types import (
     ResourceContent,
     Root,
 )
-from mcpgateway.utils.verify_credentials import require_auth, require_auth_override
+from mcpgateway.utils.azure_auth import configure_app_auth
+from mcpgateway.utils.unified_auth import unified_auth, unified_admin_auth, get_user_identifier
+from mcpgateway.utils.verify_credentials import require_auth_override
 from mcpgateway.validation.jsonrpc import (
     JSONRPCError,
     validate_request,
@@ -223,6 +225,10 @@ app = FastAPI(
     root_path=settings.app_root_path,
     lifespan=lifespan,
 )
+
+# Configure authentication based on auth_type
+if getattr(settings, 'auth_type', 'basic') == 'azure_ad':
+    configure_app_auth(app)
 
 
 class DocsAuthMiddleware(BaseHTTPMiddleware):
@@ -404,17 +410,17 @@ async def invalidate_resource_cache(uri: Optional[str] = None) -> None:
 # Protocol APIs #
 #################
 @protocol_router.post("/initialize")
-async def initialize(request: Request, user: str = Depends(require_auth)) -> InitializeResult:
+async def initialize(request: Request, user = Depends(unified_auth)) -> InitializeResult:
     """
     Initialize a protocol.
 
     This endpoint handles the initialization process of a protocol by accepting
-    a JSON request body and processing it. The `require_auth` dependency ensures that
+    a JSON request body and processing it. The `unified_auth` dependency ensures that
     the user is authenticated before proceeding.
 
     Args:
         request (Request): The incoming request object containing the JSON body.
-        user (str): The authenticated user (from `require_auth` dependency).
+        user: The authenticated user (from `unified_auth` dependency).
 
     Returns:
         InitializeResult: The result of the initialization process.
@@ -425,7 +431,8 @@ async def initialize(request: Request, user: str = Depends(require_auth)) -> Ini
     try:
         body = await request.json()
 
-        logger.debug(f"Authenticated user {user} is initializing the protocol.")
+        user_id = get_user_identifier(user)
+        logger.debug(f"Authenticated user {user_id} is initializing the protocol.")
         return await session_registry.handle_initialize_logic(body)
 
     except json.JSONDecodeError:

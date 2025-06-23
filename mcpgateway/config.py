@@ -67,6 +67,7 @@ class Settings(BaseSettings):
     protocol_version: str = "2025-03-26"
 
     # Authentication
+    auth_type: str = "basic"  # basic, azure_ad
     basic_auth_user: str = "admin"
     basic_auth_password: str = "changeme"
     jwt_secret_key: str = "my-test-key"
