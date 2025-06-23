@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Replace environment variables in nginx config and HTML files
-envsubst '${API_BASE_URL}' < /etc/nginx/conf.d/default.conf > /tmp/default.conf
+envsubst '${API_BASE_URL}' < /etc/nginx/conf.d/default.conf > /tmp/default.conf || exit 1
 mv /tmp/default.conf /etc/nginx/conf.d/default.conf
 
 # Inject environment variables into JavaScript config
