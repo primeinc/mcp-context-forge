@@ -119,6 +119,9 @@ from mcpgateway.types import (
 from mcpgateway.utils.azure_auth import configure_app_auth
 from mcpgateway.utils.unified_auth import unified_auth, unified_admin_auth, get_user_identifier
 from mcpgateway.utils.verify_credentials import require_auth_override
+
+# Create alias for backward compatibility
+require_auth = unified_auth
 from mcpgateway.validation.jsonrpc import (
     JSONRPCError,
     validate_request,

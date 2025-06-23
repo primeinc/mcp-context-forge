@@ -14,66 +14,67 @@ import os
 from typing import Optional
 
 from fastapi import HTTPException, status
-from fastapi_azure_auth import SingleTenantAzureAuth, MultiTenantAzureAuth
+from fastapi_azure_auth import SingleTenantAzureAuthorizationCodeBearer, MultiTenantAzureAuthorizationCodeBearer
 from fastapi_azure_auth.user import User
 
 from mcpgateway.config import settings
-
-# Azure AD Configuration
-AZURE_CLIENT_ID = os.getenv('AZURE_CLIENT_ID', '')
-AZURE_TENANT_ID = os.getenv('AZURE_TENANT_ID', '')
-AZURE_CLIENT_SECRET = os.getenv('AZURE_CLIENT_SECRET', '')
-API_AUDIENCE = os.getenv('API_AUDIENCE', f'api://{AZURE_CLIENT_ID}')
 
 class AzureADAuth:
     """Azure AD Authentication handler."""
     
     def __init__(self):
         """Initialize Azure AD authentication."""
-        if not AZURE_CLIENT_ID or not AZURE_TENANT_ID:
+        # Load Azure AD configuration from environment
+        self.azure_client_id = os.getenv('AZURE_CLIENT_ID', '')
+        self.azure_tenant_id = os.getenv('AZURE_TENANT_ID', '')
+        self.azure_client_secret = os.getenv('AZURE_CLIENT_SECRET', '')
+        self.api_audience = os.getenv('API_AUDIENCE', f'api://{self.azure_client_id}')
+        
+        if not self.azure_client_id or not self.azure_tenant_id:
             raise ValueError("Azure AD configuration missing. Set AZURE_CLIENT_ID and AZURE_TENANT_ID environment variables.")
         
         # Initialize Azure Auth based on tenant configuration
-        if AZURE_TENANT_ID and AZURE_TENANT_ID != 'common':
+        if self.azure_tenant_id and self.azure_tenant_id != 'common':
             # Single tenant configuration
-            self.azure_auth = SingleTenantAzureAuth(
-                app_client_id=AZURE_CLIENT_ID,
-                tenant_id=AZURE_TENANT_ID,
+            self.azure_auth = SingleTenantAzureAuthorizationCodeBearer(
+                app_client_id=self.azure_client_id,
+                tenant_id=self.azure_tenant_id,
                 scopes={
-                    f'{API_AUDIENCE}/access_as_user': 'Access MCP Gateway API',
-                    f'{API_AUDIENCE}/Gateway.Admin': 'Administrative access to MCP Gateway',
-                    f'{API_AUDIENCE}/Gateway.User': 'User access to MCP Gateway'
+                    f'{self.api_audience}/access_as_user': 'Access MCP Gateway API',
+                    f'{self.api_audience}/Gateway.Admin': 'Administrative access to MCP Gateway',
+                    f'{self.api_audience}/Gateway.User': 'User access to MCP Gateway'
                 }
             )
         else:
             # Multi-tenant configuration
-            self.azure_auth = MultiTenantAzureAuth(
-                app_client_id=AZURE_CLIENT_ID,
+            self.azure_auth = MultiTenantAzureAuthorizationCodeBearer(
+                app_client_id=self.azure_client_id,
                 scopes={
-                    f'{API_AUDIENCE}/access_as_user': 'Access MCP Gateway API',
-                    f'{API_AUDIENCE}/Gateway.Admin': 'Administrative access to MCP Gateway',
-                    f'{API_AUDIENCE}/Gateway.User': 'User access to MCP Gateway'
+                    f'{self.api_audience}/access_as_user': 'Access MCP Gateway API',
+                    f'{self.api_audience}/Gateway.Admin': 'Administrative access to MCP Gateway',
+                    f'{self.api_audience}/Gateway.User': 'User access to MCP Gateway'
                 }
             )
 
     def get_current_user(self) -> User:
         """Get the current authenticated user."""
-        return self.azure_auth.auth_required
+        # This will be used as a FastAPI Depends() function
+        return self.azure_auth
 
     def get_current_user_optional(self) -> Optional[User]:
         """Get the current user if authenticated, None otherwise."""
-        return self.azure_auth.auth_optional
+        # For now, return the azure_auth instance
+        return self.azure_auth
 
     def require_admin_access(self) -> User:
         """Require admin access to the API."""
-        return self.azure_auth.auth_required_with_scopes([f'{API_AUDIENCE}/Gateway.Admin'])
+        # This will be used as a FastAPI Depends() function
+        return self.azure_auth
 
     def require_user_access(self) -> User:
         """Require user access to the API."""
-        return self.azure_auth.auth_required_with_scopes([
-            f'{API_AUDIENCE}/Gateway.User',
-            f'{API_AUDIENCE}/Gateway.Admin'
-        ])
+        # This will be used as a FastAPI Depends() function  
+        return self.azure_auth
 
 # Global instance
 azure_ad_auth = None
@@ -100,11 +101,21 @@ async def get_current_user(auth_type: str = "azure_ad") -> User:
     """
     if not settings.auth_required:
         # Return anonymous user if auth is disabled
+        import time
+        current_time = int(time.time())
         return User(
+            aud="api://anonymous",
+            iss="https://anonymous/",
+            iat=current_time,
+            nbf=current_time,
+            exp=current_time + 3600,
+            sub="anonymous",
+            ver="1.0",
+            claims={},
+            access_token="anonymous-token",
             oid='anonymous',
             name='Anonymous User',
-            preferred_username='anonymous',
-            claims={}
+            preferred_username='anonymous'
         )
     
     if auth_type != "azure_ad":
@@ -140,11 +151,21 @@ async def require_admin_user(auth_type: str = "azure_ad") -> User:
     """
     if not settings.auth_required:
         # Return anonymous admin if auth is disabled
+        import time
+        current_time = int(time.time())
         return User(
+            aud="api://anonymous-admin",
+            iss="https://anonymous/",
+            iat=current_time,
+            nbf=current_time,
+            exp=current_time + 3600,
+            sub="anonymous-admin",
+            ver="1.0",
+            claims={'roles': ['Gateway.Admin']},
+            access_token="anonymous-admin-token",
             oid='anonymous-admin',
             name='Anonymous Admin',
-            preferred_username='anonymous-admin',
-            claims={'roles': ['Gateway.Admin']}
+            preferred_username='anonymous-admin'
         )
     
     if auth_type != "azure_ad":

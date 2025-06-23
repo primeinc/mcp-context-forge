@@ -14,6 +14,29 @@ from mcpgateway.utils.azure_auth import get_azure_auth, get_current_user, requir
 from mcpgateway.utils.unified_auth import unified_auth, unified_admin_auth, get_user_identifier
 
 
+def create_test_user(**kwargs):
+    """Helper function to create a test User with all required fields."""
+    import time
+    current_time = int(time.time())
+    
+    defaults = {
+        'aud': "api://test-api",
+        'iss': "https://sts.windows.net/test-tenant-id/",
+        'iat': current_time,
+        'nbf': current_time,
+        'exp': current_time + 3600,
+        'sub': "test-user-id",
+        'ver': "1.0",
+        'claims': {},
+        'access_token': "test-access-token",
+        'oid': 'test-user-id',
+        'name': 'Test User',
+        'preferred_username': 'test@example.com'
+    }
+    defaults.update(kwargs)
+    return User(**defaults)
+
+
 class TestAzureADAuth:
     """Tests for Azure AD authentication."""
 
@@ -44,8 +67,8 @@ class TestAzureADAuth:
     @patch('mcpgateway.utils.azure_auth.get_azure_auth')
     async def test_get_current_user_azure_ad(self, mock_get_azure_auth):
         """Test getting current user with Azure AD authentication."""
-        # Mock Azure AD user
-        mock_user = User(
+        # Mock Azure AD user with all required fields
+        mock_user = create_test_user(
             oid='test-user-id',
             name='Test User',
             preferred_username='test@example.com',
@@ -84,7 +107,7 @@ class TestAzureADAuth:
     async def test_require_admin_user_azure_ad(self, mock_get_azure_auth):
         """Test requiring admin user with Azure AD authentication."""
         # Mock Azure AD admin user
-        mock_admin = User(
+        mock_admin = create_test_user(
             oid='test-admin-id',
             name='Test Admin',
             preferred_username='admin@example.com',
@@ -110,7 +133,7 @@ class TestUnifiedAuth:
 
     def test_get_user_identifier_azure_user(self):
         """Test getting user identifier from Azure AD User object."""
-        user = User(
+        user = create_test_user(
             oid='test-oid',
             name='Test User',
             preferred_username='test@example.com',
@@ -122,7 +145,7 @@ class TestUnifiedAuth:
 
     def test_get_user_identifier_azure_user_no_username(self):
         """Test getting user identifier from Azure AD User with no preferred username."""
-        user = User(
+        user = create_test_user(
             oid='test-oid',
             name='Test User',
             claims={}
@@ -135,7 +158,7 @@ class TestUnifiedAuth:
 
     def test_get_user_identifier_azure_user_minimal(self):
         """Test getting user identifier from minimal Azure AD User object."""
-        user = User(
+        user = create_test_user(
             oid='test-oid',
             claims={}
         )
@@ -151,7 +174,7 @@ class TestUnifiedAuth:
     @patch('mcpgateway.utils.unified_auth.azure_get_current_user')
     async def test_unified_auth_azure_ad(self, mock_azure_get_user):
         """Test unified auth with Azure AD type."""
-        mock_user = User(
+        mock_user = create_test_user(
             oid='test-user',
             name='Test User',
             preferred_username='test@example.com',
@@ -179,7 +202,7 @@ class TestUnifiedAuth:
     @patch('mcpgateway.utils.unified_auth.azure_require_admin_user')
     async def test_unified_admin_auth_azure_ad(self, mock_azure_admin):
         """Test unified admin auth with Azure AD type."""
-        mock_admin = User(
+        mock_admin = create_test_user(
             oid='test-admin',
             name='Test Admin',
             preferred_username='admin@example.com',
@@ -228,7 +251,7 @@ class TestAzureAuthConfiguration:
 @pytest.fixture
 def mock_azure_user():
     """Fixture for mock Azure AD user."""
-    return User(
+    return create_test_user(
         oid='test-user-id',
         name='Test User',
         preferred_username='test@example.com',
@@ -242,7 +265,7 @@ def mock_azure_user():
 @pytest.fixture
 def mock_azure_admin():
     """Fixture for mock Azure AD admin user."""
-    return User(
+    return create_test_user(
         oid='test-admin-id',
         name='Test Admin',
         preferred_username='admin@example.com',
